@@ -1,10 +1,10 @@
 CC  = gcc
 APP = polymorph
 
-all: polymorph
+all: app
 
 clean:
 	rm -f $(APP)
 
-polymorph:
+app:
 	$(CC) $(APP).c -lm -o $(APP)

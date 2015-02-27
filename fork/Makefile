@@ -1,10 +1,10 @@
 CC  = gcc
 APP = fork
 
-all: fork
+all: app
 
 clean:
 	rm -f $(APP)
 
-fork:
+app:
 	$(CC) $(APP).c -o $(APP)

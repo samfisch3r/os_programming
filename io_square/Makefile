@@ -1,10 +1,10 @@
 CC  = gcc
 APP = io_square
 
-all: io_square
+all: app
 
 clean:
 	rm -f $(APP)
 
-io_square:
+app:
 	$(CC) $(APP).c -o $(APP)

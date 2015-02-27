@@ -1,10 +1,10 @@
 CC  = gcc
 APP = prod_cons
 
-all: prod_cons
+all: app
 
 clean:
 	rm -f $(APP)
 
-prod_cons:
+app:
 	$(CC) $(APP).c -pthread -o $(APP)

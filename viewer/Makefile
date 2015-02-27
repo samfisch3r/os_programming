@@ -1,5 +1,5 @@
 CC  = gcc
-APP = cunit
+APP = viewer
 
 all: app
 
@@ -7,4 +7,4 @@ clean:
 	rm -f $(APP)
 
 app:
-	$(CC) $(APP).c -lcunit -o $(APP)
+	$(CC) $(APP).c -w -o $(APP)
