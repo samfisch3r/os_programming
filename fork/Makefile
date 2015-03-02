@@ -1,5 +1,5 @@
 CC  = gcc
-APP = fork
+APP = fork2
 
 all: app
 
