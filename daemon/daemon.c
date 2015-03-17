@@ -28,8 +28,7 @@ void handle_error(long return_code, const char *msg, enum exit_type et)
 	{
 		printf("return_code: %ld\n", return_code);
 		printf("msg: %s\n", msg);
-		printf("exit_type: %u\n", et);
-		exit(et);
+		printf("exit_type: %u\n\n", et);
 	}
 	return;
 	
