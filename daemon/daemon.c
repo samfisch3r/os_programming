@@ -17,21 +17,25 @@
 #define TRUE 1
 #define FALSE 0
 
+#define P1_READ     0
+#define P2_WRITE    1
+#define P2_READ     2
+#define P1_WRITE    3
+#define NUM_PIPES	2
+
 enum exit_type { PROCESS_EXIT, THREAD_EXIT, NO_EXIT };
 
 const int SIZE = 1024;
 int daemonized = FALSE;
 
+// No generic handling possible
 void handle_error(long return_code, const char *msg, enum exit_type et)
 {
-	if (return_code)
-	{
-		printf("return_code: %ld\n", return_code);
-		printf("msg: %s\n", msg);
-		printf("exit_type: %u\n\n", et);
-	}
-	return;
-	
+  if (return_code != 0)
+  {
+    printf("Message: %s\n", msg);
+  }
+  return;	
 }
 
 void signal_handler(int signo) {
@@ -49,6 +53,8 @@ int main(int argc, char *argv[]) {
   int pid = getpid();
 
   int pipes[2];
+  int active[2*NUM_PIPES];
+  int val = 0, i;
   char buff[SIZE];
 
   printf("started pid=%d pgid=%d\n", pid, getpgid(pid));
@@ -57,6 +63,11 @@ int main(int argc, char *argv[]) {
   retcode = pipe(pipes);
   handle_error(retcode, "pipe", PROCESS_EXIT);
 
+  for (i = 0; i < NUM_PIPES; ++i)
+  {
+  	retcode = pipe(active+(i*2));
+  	handle_error(retcode, "active", PROCESS_EXIT);
+  }
   sigset_t sig_mask;
   retcode = sigemptyset(&sig_mask);
   handle_error(retcode, "sigemptyset", PROCESS_EXIT);
@@ -79,6 +90,11 @@ int main(int argc, char *argv[]) {
   handle_error(fork_result, "fork (1)", PROCESS_EXIT);
   if (fork_result == 0) {
     printf("In child\n");
+
+    retcode = close(active[P1_READ]);
+    handle_error(retcode, "close(active[P1_READ])", PROCESS_EXIT);
+    retcode = close(active[P1_WRITE]);
+    handle_error(retcode, "close(active[P1_WRITE])", PROCESS_EXIT);
 
     /* second fork to create grand child */
     fork_result = fork();
@@ -111,13 +127,37 @@ int main(int argc, char *argv[]) {
     retcode = sigaction(SIGUSR1, &old_sigaction, NULL);
     handle_error(retcode, "sigaction (2)", PROCESS_EXIT);
 
+    while(val != -1)
+    {
+      retcode = read(active[P2_READ], &val, sizeof(val));
+      handle_error(retcode, "read active pipe daemon", PROCESS_EXIT);
+    }
+
+    printf("Daemon: Child has terminated val = %i\n", val);
+
     /* do daemon stuff */
     printf("doing daemon stuff\n");
+    
+    val = getpgid(pid);
+    retcode = write(active[P2_WRITE], &val, sizeof(val));
+    handle_error(retcode, "write active pipe daemon", PROCESS_EXIT);
+
     sleep(30);
     printf("done with daemon\n");
+
+    retcode = close(active[P2_READ]);
+    handle_error(retcode, "close(active[P2_READ])", PROCESS_EXIT);
+    retcode = close(active[P2_WRITE]);
+    handle_error(retcode, "close(active[P2_WRITE])", PROCESS_EXIT);
+
     exit(0);
   }
   /* in parent */
+  retcode = close(active[P2_READ]);
+  handle_error(retcode, "close(active[P2_READ])", PROCESS_EXIT);
+  retcode = close(active[P2_WRITE]);
+  handle_error(retcode, "close(active[P2_WRITE])", PROCESS_EXIT);
+
   retcode = close(pipes[1]);
   handle_error(retcode, "close(pipes[1])", PROCESS_EXIT);
   read(pipes[0], buff, SIZE);
@@ -130,9 +170,26 @@ int main(int argc, char *argv[]) {
   printf("parent waiting for child\n");
   retcode = wait(&status);
   handle_error(retcode, "wait", PROCESS_EXIT);
+
   printf("child terminated\n");
   retcode = kill(daemon_pid, SIGUSR1);
   handle_error(retcode, "kill", PROCESS_EXIT);
+
+  val = -1;
+
+  retcode = write(active[P1_WRITE], &val, sizeof(val));
+  handle_error(retcode, "write active pipe parent", PROCESS_EXIT);
+
+  retcode = read(active[P1_READ], &val, sizeof(val));
+  handle_error(retcode, "read active pipe parent", PROCESS_EXIT);
+
+  printf("Parent: Daemon is doing stuff pgid = %i\n", val);
+
+  retcode = close(active[P1_READ]);
+  handle_error(retcode, "close(active[P1_READ])", PROCESS_EXIT);
+  retcode = close(active[P1_WRITE]);
+  handle_error(retcode, "close(active[P1_WRITE])", PROCESS_EXIT);
+
   printf("parent done\n");
   exit(0);
 }
