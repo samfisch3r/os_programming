@@ -8,3 +8,4 @@ polymorph/polymorph
 io_square/io_square
 viewer/viewer
 daemon/daemon
+shared_mem/shared_mem
